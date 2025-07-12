@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Product Traceability Station</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes conveyor-move {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .conveyor-item {
+            animation: conveyor-move 15s linear infinite;
+            position: absolute;
+        }
+
+        .camera-scan {
+            box-shadow: 0 0 20px 5px rgba(0, 255, 0, 0.7);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px 2px rgba(0, 255, 0, 0.3); }
+            100% { box-shadow: 0 0 25px 8px rgba(0, 255, 0, 0.7); }
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-pass { background-color: #10B981; }
+        .status-fail { background-color: #EF4444; }
+        .status-processing { background-color: #F59E0B; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-center text-gray-800">Smart Product Traceability Station</h1>
+            <p class="text-center text-gray-600">Manufacturing Line Inspection System</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+            <div class="bg-gray-800 text-white px-4 py-3">
+                <h2 class="text-xl font-semibold">Conveyor Overview</h2>
+            </div>
+            <div class="p-4">
+                <!-- Conveyor Belt Simulation -->
+                <div class="relative h-32 bg-gray-200 overflow-hidden border-b-2 border-gray-400">
+                    <div class="conveyor-item" style="left: 20%; top: 20%;" id="product1">
+                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/b959b3da-5898-4f3e-922a-287a22668fa5.png" alt="Small electronic device PCB with components" class="rounded border-2 border-gray-400" />
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-4 bg-gray-400"></div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-black opacity-20"></div>
+                    <div class="absolute bottom-1 left-0 right-0 flex">
+                        <div class="h-1 w-8 bg-black opacity-20"></div>
+                        <div class="h-1 w-8 bg-transparent"></div>
+                        <div class="h-1 w-8 bg-black opacity-20"></div>
+                        <div class="h-1 w-8 bg-transparent"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between mt-4">
+                    <button id="startConveyor" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+                        Start Conveyor
+                    </button>
+                    <button id="stopConveyor" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                        Stop Conveyor
+                    </button>
+                    <button id="testPass" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                        Test Pass Scenario
+                    </button>
+                    <button id="testFail" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">
+                        Test Fail Scenario
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Identification & Compliance Section -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="bg-blue-800 text-white px-4 py-3">
+                    <h2 class="text-xl font-semibold">Identification & Compliance Verification</h2>
+                </div>
+                <div class="p-4">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-64 h-48 bg-gray-300 rounded-lg flex items-center justify-center camera-scan" id="cameraView">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/e9913cd3-a991-4eb8-b7fd-eacfee924777.png" alt="Live camera feed of electronic product on conveyor belt" class="h-full w-full object-cover rounded-lg" />
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">Product Identification</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator status-processing" id="productIdStatus"></span>
+                                <span id="productIdText">Scanning product...</span>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-600" id="productDetails"></div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">RoHS Compliance Check</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="rohsStatus"></span>
+                                <span id="rohsText">Pending verification</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">Batch & Date Verification</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="batchStatus"></span>
+                                <span id="batchText">Pending verification</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">AI-Assisted Verification</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="aiStatus"></span>
+                                <span id="aiText">Analyzing product image...</span>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-600" id="aiDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Labeling & Rejection Section -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="bg-purple-800 text-white px-4 py-3">
+                    <h2 class="text-xl font-semibold">Labeling & Rejection Station</h2>
+                </div>
+                <div class="p-4">
+                    <div class="flex justify-between mb-4">
+                        <div class="w-48 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <div id="labelPreview" class="text-center p-2">
+                                <p class="text-xs font-mono">Label Preview</p>
+                                <div class="w-full h-1 bg-black my-1"></div>
+                                <div class="w-full h-1 bg-black my-1"></div>
+                                <div class="w-full h-1 bg-black my-1"></div>
+                                <div class="w-20 h-20 mx-auto bg-white border border-gray-400 flex items-center justify-center text-xs text-gray-500">
+                                    QR Code
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-48 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/12b59a65-b615-4124-9cc6-e4d32c808d25.png" alt="OCR scan of printed label showing quality verification" class="h-full w-full object-cover rounded-lg hidden" id="labelScan" />
+                            <span class="text-gray-500" id="labelScanPlaceholder">OCR Scan Result</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">Label Generation</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="labelStatus"></span>
+                                <span id="labelText">Waiting for product data</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">Print Verification</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="printStatus"></span>
+                                <span id="printText">Waiting for label data</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">Rejection Mechanism</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="rejectStatus"></span>
+                                <span id="rejectText">System ready</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-2">Final Status</h3>
+                            <div class="flex items-center">
+                                <span class="status-indicator" id="finalStatus"></span>
+                                <span id="finalText" class="font-medium">Unit in processing</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Log Section -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="bg-gray-800 text-white px-4 py-3">
+                <h2 class="text-xl font-semibold">Traceability Data Log</h2>
+            </div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="py-2 px-4 border-b border-gray-200 text-left">Timestamp</th>
+                                <th class="py-2 px-4 border-b border-gray-200 text-left">Device ID</th>
+                                <th class="py-2 px-4 border-b border-gray-200 text-left">Batch ID</th>
+                                <th class="py-2 px-4 border-b border-gray-200 text-left">RoHS</th>
+                                <th class="py-2 px-4 border-b border-gray-200 text-left">Status</th>
+                                <th class="py-2 px-4 border-b border-gray-200 text-left">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTableBody">
+                            <tr>
+                                <td class="py-2 px-4 border-b border-gray-200" colspan="6" class="text-center text-gray-500">Waiting for first product scan...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulation states
+        const products = [
+            {
+                id: "DEV-2023-0456",
+                type: "Smart Sensor Board",
+                model: "SSB-X200",
+                batch: "BATCH-2023-Q3-12",
+                prodDate: "2023-08-15",
+                rohsCompliant: true,
+                image: "pcb_with_components.jpg",
+                labelQuality: 0.95,
+                defects: []
+            },
+            {
+                id: "DEV-2023-0457",
+                type: "Control Module",
+                model: "CM-Y330",
+                batch: "BATCH-2023-Q3-12",
+                prodDate: "2023-08-15",
+                rohsCompliant: false,
+                image: "control_module.jpg",
+                labelQuality: 0.85,
+                defects: ["lead_content"]
+            },
+            {
+                id: "DEV-2023-0458",
+                type: "Communication Hub",
+                model: "CH-Z410",
+                batch: "BATCH-2023-Q3-13",
+                prodDate: "2023-08-16",
+                rohsCompliant: true,
+                image: "comm_hub.jpg",
+                labelQuality: 0.75,
+                defects: ["misaligned_label"]
+            }
+        ];
+
+        let currentProductIndex = 0;
+        let conveyorRunning = false;
+        let animationInterval;
+        let processInterval;
+        let isProcessing = false;
+
+        // DOM Elements
+        const startBtn = document.getElementById('startConveyor');
+        const stopBtn = document.getElementById('stopConveyor');
+        const testPassBtn = document.getElementById('testPass');
+        const testFailBtn = document.getElementById('testFail');
+        const logTableBody = document.getElementById('logTableBody');
+
+        // Status elements
+        const statusElements = {
+            productId: {
+                indicator: document.getElementById('productIdStatus'),
+                text: document.getElementById('productIdText'),
+                details: document.getElementById('productDetails')
+            },
+            rohs: {
+                indicator: document.getElementById('rohsStatus'),
+                text: document.getElementById('rohsText')
+            },
+            batch: {
+                indicator: document.getElementById('batchStatus'),
+                text: document.getElementById('batchText')
+            },
+            ai: {
+                indicator: document.getElementById('aiStatus'),
+                text: document.getElementById('aiText'),
+                details: document.getElementById('aiDetails')
+            },
+            label: {
+                indicator: document.getElementById('labelStatus'),
+                text: document.getElementById('labelText')
+            },
+            print: {
+                indicator: document.getElementById('printStatus'),
+                text: document.getElementById('printText')
+            },
+            reject: {
+                indicator: document.getElementById('rejectStatus'),
+                text: document.getElementById('rejectText')
+            },
+            final: {
+                indicator: document.getElementById('finalStatus'),
+                text: document.getElementById('finalText')
+            }
+        };
+
+        // Event Listeners
+        startBtn.addEventListener('click', startConveyor);
+        stopBtn.addEventListener('click', stopConveyor);
+        testPassBtn.addEventListener('click', () => testScenario(true));
+        testFailBtn.addEventListener('click', () => testScenario(false));
+
+        // Functions
+        function startConveyor() {
+            if (conveyorRunning) return;
+            conveyorRunning = true;
+
+            const conveyorItems = document.querySelectorAll('.conveyor-item');
+            conveyorItems.forEach(item => {
+                item.style.animationPlayState = 'running';
+            });
+
+            startProcessingCycle();
+        }
+
+        function stopConveyor() {
+            if (!conveyorRunning) return;
+            conveyorRunning = false;
+
+            const conveyorItems = document.querySelectorAll('.conveyor-item');
+            conveyorItems.forEach(item => {
+                item.style.animationPlayState = 'paused';
+            });
+
+            clearInterval(processInterval);
+            isProcessing = false;
+        }
+
+        function startProcessingCycle() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            processInterval = setInterval(() => {
+                processProduct();
+                currentProductIndex = (currentProductIndex + 1) % products.length;
+            }, 10000); // Process every 10 seconds
+        }
+
+        function processProduct() {
+            const product = products[currentProductIndex];
+
+            // Reset all status indicators
+            resetStatusIndicators();
+
+            // Update camera view
+            const cameraView = document.getElementById('cameraView');
+            cameraView.innerHTML = `<img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/30f1f31a-8ed5-4eae-b05f-17f5adcd0d6d.png'+')}" alt="${product.type} product on conveyor belt" class="h-full w-full object-cover rounded-lg" />`;
+
+            // Simulate scanning and processing
+            statusElements.productId.indicator.className = 'status-indicator status-processing';
+            statusElements.productId.text.textContent = 'Identifying product...';
+
+            setTimeout(() => {
+                // Product identification
+                statusElements.productId.indicator.className = 'status-indicator status-pass';
+                statusElements.productId.text.textContent = `Identified: ${product.id}`;
+                statusElements.productId.details.innerHTML = `
+                    <strong>Type:</strong> ${product.type}<br>
+                    <strong>Model:</strong> ${product.model}<br>
+                    <strong>MFG Date:</strong> ${product.prodDate}
+                `;
+
+                // RoHS check
+                setTimeout(() => {
+                    const rohsPass = product.rohsCompliant;
+                    statusElements.rohs.indicator.className = rohsPass ?
+                        'status-indicator status-pass' : 'status-indicator status-fail';
+                    statusElements.rohs.text.textContent = rohsPass ?
+                        'RoHS Compliant' : 'RoHS Non-Compliant - Contains restricted substances';
+
+                    // Batch verification
+                    setTimeout(() => {
+                        statusElements.batch.indicator.className = 'status-indicator status-pass';
+                        statusElements.batch.text.textContent = `Verified: Batch ${product.batch}`;
+
+                        // AI analysis
+                        setTimeout(() => {
+                            const defects = product.defects;
+                            if (defects.length === 0) {
+                                statusElements.ai.indicator.className = 'status-indicator status-pass';
+                                statusElements.ai.text.textContent = 'No defects detected';
+                                statusElements.ai.details.textContent = 'AI model reports all quality parameters within limits';
+                            } else {
+                                statusElements.ai.indicator.className = 'status-indicator status-fail';
+                                statusElements.ai.text.textContent = 'Quality issues detected';
+                                statusElements.ai.details.textContent = `AI detected: ${defects.join(', ')}`;
+                            }
+
+                            // Label generation
+                            setTimeout(() => {
+                                const labelPass = product.labelQuality > 0.8 && defects.every(d => d !== 'misaligned_label');
+                                statusElements.label.indicator.className = labelPass ?
+                                    'status-indicator status-pass' : 'status-indicator status-fail';
+                                statusElements.label.text.textContent = labelPass ?
+                                    'Label generated successfully' : 'Label generation failed - poor quality';
+
+                                // Print verification
+                                setTimeout(() => {
+                                    statusElements.print.indicator.className = 'status-indicator status-pass';
+                                    statusElements.print.text.textContent = 'Label printed and verified';
+
+                                    document.getElementById('labelPreview').innerHTML = `
+                                        <div class="text-xs font-mono">${product.model}</div>
+                                        <div class="w-full h-1 bg-black my-1"></div>
+                                        <div class="text-xs font-mono">${product.id}</div>
+                                        <div class="w-full h-1 bg-black my-1"></div>
+                                        <div class="text-xs font-mono">${product.batch}</div>
+                                        <div class="w-20 h-20 mx-auto bg-white border border-gray-400 flex items-center justify-center text-xs text-gray-500">
+                                            QR Code
+                                        </div>
+                                    `;
+
+                                    document.getElementById('labelScanPlaceholder').classList.add('hidden');
+                                    const labelScan = document.getElementById('labelScan');
+                                    labelScan.classList.remove('hidden');
+                                    labelScan.src = `https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/cd30798a-6755-4dba-ad69-59f8cfd508af.png
+                                    labelScan.alt = `OCR verification of printed label for product ${product.id}`;
+
+                                    // Rejection decision
+                                    setTimeout(() => {
+                                        const shouldReject = !rohsPass || !labelPass || defects.length > 0;
+                                        statusElements.reject.indicator.className = shouldReject ?
+                                            'status-indicator status-fail' : 'status-indicator status-pass';
+                                        statusElements.reject.text.textContent = shouldReject ?
+                                            'Unit rejected - quality issues' : 'Unit passed - moving to packaging';
+
+                                        // Final status
+                                        statusElements.final.indicator.className = shouldReject ?
+                                            'status-indicator status-fail' : 'status-indicator status-pass';
+                                        statusElements.final.text.textContent = shouldReject ?
+                                            'REJECTED' : 'ACCEPTED';
+                                        statusElements.final.text.className = shouldReject ?
+                                            'font-medium text-red-600' : 'font-medium text-green-600';
+
+                                        // Log the result
+                                        logProductResult(product, !shouldReject);
+                                    }, 1000);
+                                }, 500);
+                            }, 500);
+                        }, 1000);
+                    }, 500);
+                }, 500);
+            }, 1500);
+        }
+
+        function resetStatusIndicators() {
+            // Reset all indicators to neutral/gray
+            Object.values(statusElements).forEach(element => {
+                if (element.indicator) {
+                    element.indicator.className = 'status-indicator';
+                }
+            });
+
+            // Reset text fields
+            statusElements.productId.text.textContent = 'Scanning product...';
+            statusElements.productId.details.textContent = '';
+            statusElements.rohs.text.textContent = 'Pending verification';
+            statusElements.batch.text.textContent = 'Pending verification';
+            statusElements.ai.text.textContent = 'Analyzing product image...';
+            statusElements.ai.details.textContent = '';
+            statusElements.label.text.textContent = 'Waiting for product data';
+            statusElements.print.text.textContent = 'Waiting for label data';
+            statusElements.reject.text.textContent = 'System ready';
+            statusElements.final.text.textContent = 'Unit in processing';
+            statusElements.final.text.className = 'font-medium';
+
+            // Reset previews
+            document.getElementById('labelPreview').innerHTML = `
+                <p class="text-xs font-mono">Label Preview</p>
+                <div class="w-full h-1 bg-black my-1"></div>
+                <div class="w-full h-1 bg-black my-1"></div>
+                <div class="w-full h-1 bg-black my-1"></div>
+                <div class="w-20 h-20 mx-auto bg-white border border-gray-400 flex items-center justify-center text-xs text-gray-500">
+                    QR Code
+                </div>
+            `;
+            document.getElementById('labelScanPlaceholder').classList.remove('hidden');
+            document.getElementById('labelScan').classList.add('hidden');
+        }
+
+        function logProductResult(product, passed) {
+            const newRow = document.createElement('tr');
+            const now = new Date();
+            const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+
+            newRow.innerHTML = `
+                <td class="py-2 px-4 border-b border-gray-200">${timestamp}</td>
+                <td class="py-2 px-4 border-b border-gray-200">${product.id}</td>
+                <td class="py-2 px-4 border-b border-gray-200">${product.batch}</td>
+                <td class="py-2 px-4 border-b border-gray-200">${product.rohsCompliant ? 'YES' : 'NO'}</td>
+                <td class="py-2 px-4 border-b border-gray-200">
+                    <span class="inline-block px-2 py-1 rounded-full text-xs ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${passed ? 'Pass' : 'Fail'}
+                    </span>
+                </td>
+                <td class="py-2 px-4 border-b border-gray-200 text-sm">${passed ? 'All checks passed' : 'Issues: ' + product.defects.join(', ')}</td>
+            `;
+
+            // Add to top of table
+            const firstRow = logTableBody.firstChild;
+            if (firstRow && firstRow.textContent.includes('Waiting')) {
+                logTableBody.removeChild(firstRow);
+            }
+            logTableBody.insertBefore(newRow, logTableBody.firstChild);
+        }
+
+        function testScenario(shouldPass) {
+            const testProduct = {
+                id: `TEST-${Date.now().toString().slice(-6)}`,
+                type: shouldPass ? "Test Valid Product" : "Test Invalid Product",
+                model: shouldPass ? "TVP-1000" : "TIP-2000",
+                batch: "BATCH-TEST",
+                prodDate: new Date().toISOString().split('T')[0],
+                rohsCompliant: shouldPass,
+                image: shouldPass ? "test_good_product.jpg" : "test_bad_product.jpg",
+                labelQuality: shouldPass ? 0.95 : 0.65,
+                defects: shouldPass ? [] : (shouldPass ? [] : ["test_defect", "label_issue"])
+            };
+
+            products.unshift(testProduct);
+            currentProductIndex = 0;
+
+            if (!conveyorRunning) {
+                startConveyor();
+            }
+
+            // Force immediate processing of test product
+            clearInterval(processInterval);
+            processProduct();
+            startProcessingCycle();
+        }
+    </script>
+</body>
+</html>
+
